@@ -85,6 +85,20 @@ namespace ecg_app.Models
             
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="frameNumber"></param>
+        /// <returns></returns>
+        public async Task<BaseProtocolResponse> Sleep(ushort seconds)
+        {
+            var pack = new List<byte>();
+            pack.Add(0x56);
+            pack.AddRange(BitConverter.GetBytes(seconds));
+            return BaseProtocolResponse.Parse(await SendBleWithReadAnswear(pack.ToArray()));
+        }
+
+
         private async Task<byte[]> SendBleWithReadAnswear(byte[] data)
         {
             byte[] res = null;

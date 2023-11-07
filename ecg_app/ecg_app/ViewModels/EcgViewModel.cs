@@ -36,7 +36,7 @@ namespace ecg_app.ViewModels
 
         public string MeasureResultText { get; set; }
 
-        public bool Connected { get; set; }
+        public bool Connected => cardIQ != null && cardIQ.State == Plugin.BLE.Abstractions.DeviceState.Connected;
 
         public EcgViewModel()
         {
@@ -140,9 +140,13 @@ namespace ecg_app.ViewModels
                 if (cardIQ == null)
                     throw new Exception("CardIQ not bounded");
 
+
+                adapter.DeviceConnectionLost += Adapter_DeviceConnectionLost;
                 await adapter.ConnectToDeviceAsync(cardIQ);
+
                 IService ecgService = await cardIQ.GetServiceAsync(Guid.Parse("4fafc201-1fb5-459e-8fcc-c5c9c3319333"));
                 ecgCharacteristic = await ecgService.GetCharacteristicAsync(Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
+    
 
                 protocol = new BleEcgProtocol(ecgCharacteristic);
 
@@ -159,9 +163,7 @@ namespace ecg_app.ViewModels
                 OnPropertyChanged(nameof(LoNegative));
                 OnPropertyChanged(nameof(EcgFramesCount));
 
-
-
-
+                OnPropertyChanged(nameof(Connected));
 
             }
             catch (Exception exc)
@@ -171,8 +173,24 @@ namespace ecg_app.ViewModels
 
         }
 
+        private void Adapter_DeviceConnectionLost(object sender, Plugin.BLE.Abstractions.EventArgs.DeviceErrorEventArgs e)
+        {
+            cardIQ = null; 
+
+            BatteryLevel = 0;
+            LoPositive = 0;
+            LoNegative = 0;
+            EcgFramesCount = 0;
+
+            OnPropertyChanged(nameof(BatteryLevel));
+            OnPropertyChanged(nameof(LoPositive));
+            OnPropertyChanged(nameof(LoNegative));
+            OnPropertyChanged(nameof(EcgFramesCount));
+            OnPropertyChanged(nameof(Connected));
+        }
+
         /// <summary>
-        /// 
+        /// запрос и вычитывание ЭКГ
         /// </summary>
         /// <returns></returns>
         private async Task ReadEcg()
@@ -193,6 +211,7 @@ namespace ecg_app.ViewModels
                     return;
                 }
 
+                Trace.WriteLine($"{DateTime.Now} begin wait for ecg mteasure complite");
                 var maxAwaitSecs = 10;
                 PingResponsePack pingres = null;
                 for (int i = 0; i < maxAwaitSecs; i++)
@@ -207,23 +226,48 @@ namespace ecg_app.ViewModels
                     await Task.Delay(1000);
                 }
 
+                var allSamples = new List<short>();
+
                 if (pingres.Frames > 0) // чтото намерилось
                 {
-                    MeasureResultText = $"есть {pingres.Frames} фреймов для загрузки";
                     /// дальше читать все намеренное
                     for (global::System.Int32 i = 0; i < pingres.Frames; i++)
                     {
-                        var readres = protocol.ReadEcg(i);
+                        Trace.WriteLine($"get ecg frame #{i}/{pingres.Frames}");
+                        MeasureResultText = $"get frame #{i}/{pingres.Frames}";
+                        OnPropertyChanged("MeasureResultText");
+                        var readres = await protocol.ReadEcg(i);
+                        allSamples.AddRange(readres.Samples);
                     }
                 }
                 else
                     MeasureResultText = $"не удалось провести измерение";
+
+                MeasureResultText = $"Получено {allSamples.Count} измерений";
+                OnPropertyChanged("MeasureResultText");
+
+                GoSleepBaby(60);
             }
             catch(Exception exc)
             {
 
             }
 
+        }
+
+        /// <summary>
+        /// Отправить спать платку
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        private async Task GoSleepBaby(int seconds)
+        {
+            var res = await protocol.Sleep((ushort)seconds);
+            _=Task.Run(async () =>
+            {
+                await Task.Delay(seconds * 1000);
+                _=Init();
+            });
         }
     }
 
