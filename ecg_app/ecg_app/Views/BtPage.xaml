@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ecg_app.Views.BtPage">
+    <ContentPage.Content>
+        <Grid VerticalOptions="FillAndExpand" Padding="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            
+      
+            <Frame Margin="5" Grid.Row="0" BackgroundColor="Red">
+                <Label Text="Welcome to Xamarin.Forms!" TextColor="Black"
+                    VerticalOptions="CenterAndExpand" 
+                    HorizontalOptions="CenterAndExpand" FontSize="25"/>
+
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="tapped" NumberOfTapsRequired="1"/>
+                </Frame.GestureRecognizers>
+            </Frame>
+
+            <Frame Margin="15" Grid.Row="1" BackgroundColor="Black">
+                <StackLayout VerticalOptions="FillAndExpand" HorizontalOptions="FillAndExpand">
+                    <Label Text="{Binding BatteryLevel, StringFormat='Battery level: {0}%'}"
+                        VerticalOptions="CenterAndExpand" 
+                        HorizontalOptions="CenterAndExpand" />
+                    <Label Text="{Binding LoPositive, StringFormat='Lo+: {0}'}"
+                        VerticalOptions="CenterAndExpand" 
+                        HorizontalOptions="CenterAndExpand" />
+                    <Label Text="{Binding LoNegative, StringFormat='Lo-: {0}'}"
+                        VerticalOptions="CenterAndExpand" 
+                        HorizontalOptions="CenterAndExpand" />
+                    <Label Text="{Binding EcgFramesCount, StringFormat='Фреймов данных: {0}'}"
+                        VerticalOptions="CenterAndExpand" 
+                        HorizontalOptions="CenterAndExpand" />
+                </StackLayout>
+            </Frame>
+
+        </Grid>
+    </ContentPage.Content>
+</ContentPage>
